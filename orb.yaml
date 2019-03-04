@@ -1,0 +1,55 @@
+version: 2.1
+description: |
+  Multirepo and monorepo support for CircleCI.
+
+  Source: https://github.com/dnephin/multirepo-orb
+
+commands:
+  run-job-for-paths:
+    description: |
+      Continue running the job if any files in the paths have been modified relative
+      to the last commit shared with the upstream git branch.
+  
+      This command allows you to skip all of the subsequent steps in a job so that any
+      repository with multiple workflows, or multiple flows within a single
+      workflow, will only run CI jobs relevant to the files that changed.
+  
+      If you have a multipurpose git repository with independent directory trees
+      this command allows you to run the tests for only the services which have been
+      modified relative to the upstream branch.
+  
+    parameters:
+      paths:
+        type: string
+        description: |
+          A list of file paths used with 'git diff' to check for modification.
+      upstream_branch:
+        type: string
+        description: |
+          The upstream branch used with 'git merge-base' to find the most recent
+          commit shared by HEAD and the upstream branch.
+        default: origin/master
+      working_directory:
+        type: string
+        description: |
+          Directory to change to before executing the command.
+        default: "$PWD"
+    steps:
+      - run:
+          name: Check if task should run
+          command: |
+            cd << parameters.working_directory >>
+
+            upstream="$(git merge-base HEAD << parameters.upstream_branch >>)"
+            echo "Comparing to upstream commit $upstream"
+  
+            # Print the diff
+            PAGER=cat git diff --stat=80 $upstream -- << parameters.paths >>
+  
+            # Halt if no diff
+            if git diff --quiet $upstream -- << parameters.paths >>; then
+              echo "Skipping job, no files modified"
+              circleci-agent step halt
+            fi
+
+
