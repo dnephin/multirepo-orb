@@ -7,8 +7,10 @@ description: |
 commands:
   run-job-for-paths:
     description: |
-      Continue running the job if any files in the paths have been modified relative
-      to the last commit shared with the upstream git branch.
+      Continue running the job if any file in paths has been modified since
+      the last commit shared with the upstream git branch (default: origin/master).
+
+      This command must be run after `checkout`.
   
       This command allows you to skip all of the subsequent steps in a job so that any
       repository with multiple workflows, or multiple flows within a single
@@ -36,12 +38,16 @@ commands:
         default: "$PWD"
     steps:
       - run:
-          name: Check if task should run
+          name: Check if job should run
           command: |
             cd << parameters.working_directory >>
 
             upstream="$(git merge-base HEAD << parameters.upstream_branch >>)"
             echo "Comparing to upstream commit $upstream"
+            if [[ -z "$upstream" ]]; then
+              echo "git merge-base failed"
+              exit 1
+            fi
   
             # Print the diff
             PAGER=cat git diff --stat=80 $upstream -- << parameters.paths >>
