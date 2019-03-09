@@ -44,6 +44,12 @@ commands:
 
             upstream="$(git merge-base HEAD << parameters.upstream_branch >>)"
             echo "Comparing to upstream commit $upstream"
+
+            if [[ "$(git rev-parse HEAD)" == "$upstream" ]]; then
+              echo "HEAD matches upstream, running with no diff"
+              exit 0
+            fi
+
             if [[ -z "$upstream" ]]; then
               echo "git merge-base failed"
               exit 1
@@ -57,5 +63,3 @@ commands:
               echo "Skipping job, no files modified"
               circleci-agent step halt
             fi
-
-
