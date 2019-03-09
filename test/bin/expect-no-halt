@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+testdir="${TESTDIR-/tmp/testdir}"
+
+if [[ ! -f "$testdir/halted" ]]; then
+  echo "Task was not halted"
+  exit 0
+fi
+
+rm "$testdir/halted"
+echo "Task was halted"
+exit 1

@@ -1,0 +1,102 @@
+version: 2.1
+
+refs:
+  test_filter: &test_filter
+    filters:
+      branches:
+        only: testing
+
+workflows:
+  version: 2.0
+
+#  publish-dev:
+#    jobs:
+#      - publish
+
+  ci:
+    jobs:
+      - test_orb_file_changed: *test_filter
+      - test_orb_no_file_changed: *test_filter
+      - test_orb_on_upstream: *test_filter
+
+orbs:
+  multirepo: dnephin/multirepo@dev:testing
+
+executors:
+  bash:
+    docker:
+    - image: bash:4
+
+commands:
+  # temporary command while the official circleci/cli orb dependencies are cleaned up.
+  install-cli:
+    steps:
+      - run:
+          name: download
+          command: |
+            export releases=https://github.com/CircleCI-Public/circleci-cli/releases
+            export version=0.1.5432
+            wget -qO- $releases/download/v${version}/circleci-cli_${version}_linux_amd64.tar.gz | \
+              tar -zx circleci-cli_${version}_linux_amd64/circleci
+            mv circleci*/* /bin
+
+  install-git:
+    steps:
+      - run:
+          name: "Install git"
+          command: |
+            command -v git && exit
+            command -v apk && apk add --no-cache --no-progress git
+
+  setup:
+    steps:
+      - install-git
+      - checkout
+      - run: test/bin/fake-circleci-agent
+
+jobs:
+  publish:
+    executor: bash
+    parameters:
+      tag:
+        type: string
+        default: "dev:testing"
+    steps:
+      - install-cli
+      - install-git
+      - run: circleci orb validate orb.yaml
+      - run: circleci orb publish orb.yaml dnephin/multirepo@<< parameters.tag >>
+      - run: |
+          git co -b local
+          git push origin local:stage
+
+  test_orb_file_changed:
+    executor: bash
+    environment:
+      TESTDIR: /tmp/testdir
+    steps:
+      - setup
+      - multirepo/run-job-for-paths:
+          paths: orb.yaml
+      - run: test/bin/expect-no-halt
+
+  test_orb_no_file_changed:
+    executor: bash
+    environment:
+      TESTDIR: /tmp/testdir
+    steps:
+      - setup
+      - multirepo/run-job-for-paths:
+          paths: testdata/no-changes-here
+      - run: test/bin/expect-halted
+
+  test_orb_on_upstream:
+    executor: bash
+    environment:
+      TESTDIR: /tmp/testdir
+    steps:
+      - setup
+      - multirepo/run-job-for-paths:
+          paths: orb.yaml
+          upstream_branch: $CIRCLE_SHA1
+      - run: test/bin/expect-no-halt
