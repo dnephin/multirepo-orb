@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+testdir="${TESTDIR-/tmp/testdir}"
+mkdir -p $testdir ~/bin
+
+fake=~/bin/circleci-agent
+cat > $fake <<FAKE
+  touch "$testdir/halted"
+FAKE
+chmod +x $fake
+
+echo "export PATH=$(dirname $fake):$PATH" >> $BASH_ENV
