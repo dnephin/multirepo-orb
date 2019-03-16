@@ -7,12 +7,12 @@ refs:
         only: [testing]
 
 workflows:
-  version: 2.0
+  publish-dev:
+    jobs:
+      - publish:
+          filters: {branches: {only: [integration]}}
 
-#  publish-dev:
-#    jobs:
-#      - publish
-  master:
+  validate:
     jobs: [validate]
 
   ci:
@@ -56,9 +56,14 @@ jobs:
       - install-packages
       - checkout
       - cli/install
-      - run: version=<< parameters.tag >> ./make publish
+      - run:
+          environment:
+            CIRCLECI_CLI_SKIP_UPDATE_CHECK: 1
+          command: |
+            circleci setup --no-prompt
+            version=<< parameters.tag >> ./make publish
       - run: |
-          git co -b local
+          git checkout -b local
           git push origin local:testing
 
   validate:
