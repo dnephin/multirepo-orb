@@ -21,6 +21,8 @@ workflows:
 
 orbs:
   multirepo: dnephin/multirepo@dev:testing
+  cli: circleci/circleci-cli@0.1.4
+
 
 executors:
   bash:
@@ -28,18 +30,6 @@ executors:
     - image: bash:4
 
 commands:
-  # temporary command while the official circleci/cli orb dependencies are cleaned up.
-  install-cli:
-    steps:
-      - run:
-          name: download
-          command: |
-            export releases=https://github.com/CircleCI-Public/circleci-cli/releases
-            export version=0.1.5432
-            wget -qO- $releases/download/v${version}/circleci-cli_${version}_linux_amd64.tar.gz | \
-              tar -zx circleci-cli_${version}_linux_amd64/circleci
-            mv circleci*/* /bin
-
   install-git:
     steps:
       - run:
@@ -62,9 +52,8 @@ jobs:
         type: string
         default: "dev:testing"
     steps:
-      - install-cli
+      - cli/install
       - install-git
-      - run: circleci orb validate orb.yaml
       - run: circleci orb publish orb.yaml dnephin/multirepo@<< parameters.tag >>
       - run: |
           git co -b local
