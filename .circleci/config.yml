@@ -38,6 +38,7 @@ workflows:
             branches: {ignore: '/.*/'}
 
 orbs:
+  multirepo-prod: dnephin/multirepo@0.0.5
   multirepo: dnephin/multirepo@dev:testing
   cli: circleci/circleci-cli@0.1.4
 
@@ -78,8 +79,10 @@ jobs:
       - when:
           condition: << parameters.increment-patch >>
           steps:
-            - run: ./make publish_patch
             - run: git push origin HEAD:master
+            - multirepo-prod/run-job-for-paths:
+                paths: orb.yaml
+            - run: ./make publish_patch
 
       - unless:
           condition: << parameters.increment-patch >>
