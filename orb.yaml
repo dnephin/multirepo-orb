@@ -4,6 +4,10 @@ description: |
 
   Source: https://github.com/dnephin/multirepo-orb
 
+  Use the `multiorb/run-job-for-paths` command in each job that should be
+  run when the paths change. Only the job itself will be halted, so all
+  subsequent jobs in the workflow must call the same command.
+
 commands:
   run-job-for-paths:
     description: |
