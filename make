@@ -9,7 +9,7 @@ default=validate
 
 validate() {
     circleci orb validate orb.yaml
-    [ -f .circleci/config.yml ] && circleci config validate
+    if [ -f .circleci/config.yml ]; then circleci config validate; fi
 }
 
 publish() {
