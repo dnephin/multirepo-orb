@@ -17,6 +17,10 @@ publish() {
     circleci orb publish orb.yaml $orbname@$version
 }
 
+publish_patch() {
+    circleci orb publish increment orb.yaml $orbname patch
+}
+
 install_precommit() {
     local hook=.git/hooks/pre-commit
     echo "./make validate" > $hook

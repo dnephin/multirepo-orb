@@ -1,25 +1,40 @@
 version: 2.1
 
 refs:
-  test_filter: &test_filter
+  filter_branch_testing: &filter_branch_testing
     filters:
       branches:
         only: [testing]
 
 workflows:
-  publish-dev:
+  cd:
     jobs:
+      - validate
+
       - publish:
+          name: publish-dev
+          tag: dev:testing
           filters: {branches: {only: [integration]}}
 
-  validate:
-    jobs: [validate]
+      - test_orb_file_changed:    *filter_branch_testing
+      - test_orb_no_file_changed: *filter_branch_testing
+      - test_orb_on_upstream:     *filter_branch_testing
 
-  ci:
-    jobs:
-      - test_orb_file_changed:    *test_filter
-      - test_orb_no_file_changed: *test_filter
-      - test_orb_on_upstream:     *test_filter
+      - publish:
+          name: publish-master
+          increment-patch: true
+          <<: *filter_branch_testing
+          requires:
+            - test_orb_file_changed
+            - test_orb_no_file_changed
+            - test_orb_on_upstream
+
+      - publish:
+          name: publish-tag
+          tag: ${CIRCLE_TAG#v}
+          filters:
+            tags: {only: '/v[0-9]+(\\.[0-9]+)*/'}
+            branches: {ignore: '/.*/'}
 
 orbs:
   multirepo: dnephin/multirepo@dev:testing
@@ -51,20 +66,25 @@ jobs:
     parameters:
       tag:
         type: string
-        default: "dev:testing"
+        default: dev:testing
+      increment-patch:
+        type: boolean
+        default: false
     steps:
       - install-packages
       - checkout
       - cli/install
-      - run:
-          environment:
-            CIRCLECI_CLI_SKIP_UPDATE_CHECK: 1
-          command: |
-            circleci setup --no-prompt
-            version=<< parameters.tag >> ./make publish
-      - run: |
-          git checkout -b local
-          git push origin local:testing
+      - when:
+          condition: << parameters.increment-patch >>
+          steps:
+            - run: ./make publish_patch
+            - run: git push origin HEAD:master
+
+      - unless:
+          condition: << parameters.increment-patch >>
+          steps:
+            - run: version=<< parameters.tag >> ./make publish
+            - run: git push origin HEAD:testing
 
   validate:
     executor: bash
