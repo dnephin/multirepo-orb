@@ -12,12 +12,14 @@ workflows:
 #  publish-dev:
 #    jobs:
 #      - publish
+  master:
+    jobs: [validate]
 
   ci:
     jobs:
-      - test_orb_file_changed: *test_filter
+      - test_orb_file_changed:    *test_filter
       - test_orb_no_file_changed: *test_filter
-      - test_orb_on_upstream: *test_filter
+      - test_orb_on_upstream:     *test_filter
 
 orbs:
   multirepo: dnephin/multirepo@dev:testing
@@ -30,17 +32,16 @@ executors:
     - image: bash:4
 
 commands:
-  install-git:
+  install-packages:
     steps:
       - run:
-          name: "Install git"
+          name: "Install packages"
           command: |
-            command -v git && exit
-            command -v apk && apk add --no-cache --no-progress git
+            apk add --no-cache --no-progress git openssh curl
 
   setup:
     steps:
-      - install-git
+      - run: apk add --no-cache --no-progress git
       - checkout
       - run: test/bin/fake-circleci-agent
 
@@ -52,12 +53,21 @@ jobs:
         type: string
         default: "dev:testing"
     steps:
+      - install-packages
+      - checkout
       - cli/install
-      - install-git
-      - run: circleci orb publish orb.yaml dnephin/multirepo@<< parameters.tag >>
+      - run: version=<< parameters.tag >> ./make publish
       - run: |
           git co -b local
-          git push origin local:stage
+          git push origin local:testing
+
+  validate:
+    executor: bash
+    steps:
+      - install-packages
+      - checkout
+      - cli/install
+      - run: ./make validate
 
   test_orb_file_changed:
     executor: bash

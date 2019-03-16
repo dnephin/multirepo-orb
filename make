@@ -13,18 +13,19 @@ validate() {
 }
 
 publish() {
-    local version=${VERSION-"dev:testing"}
+    local version=${version-"dev:testing"}
     circleci orb publish orb.yaml $orbname@$version
 }
 
 install_precommit() {
-    local hook=.git/hooks/.pre-commit
-    echo "./make validate" >> $hook
+    local hook=.git/hooks/pre-commit
+    echo "./make validate" > $hook
     chmod +x $hook
 }
 
 for arg in "$@"; do case $arg in
-list) declare -F | awk '{print $3}'; exit;;
-   *) $arg;;
+  list) declare -F | awk '{print $3}'; exit;;
+     *) $arg;;
 esac; done
-[ -z "$@" ] && [ ${default-} ] && $default
+
+if [ -z "$@" ] && [ ${default-} ]; then $default; fi
