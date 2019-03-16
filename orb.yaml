@@ -40,6 +40,13 @@ commands:
         description: |
           Directory to change to before executing the command.
         default: "$PWD"
+      run_on_upstream:
+        type: boolean
+        description: |
+          When run_on_upstream is true, and HEAD matches the upstream_branch the
+          job always run. When false the job will not run when HEAD matches
+          the upstream_branch.
+        default: true
     steps:
       - run:
           name: Check if job should run
@@ -49,10 +56,12 @@ commands:
             upstream="$(git merge-base HEAD << parameters.upstream_branch >>)"
             echo "Comparing to upstream commit $upstream"
 
+            <<# parameters.run_on_upstream >>
             if [[ "$(git rev-parse HEAD)" == "$upstream" ]]; then
               echo "HEAD matches upstream, running with no diff"
               exit 0
             fi
+            <</ parameters.run_on_upstream >>
 
             if [[ -z "$upstream" ]]; then
               echo "git merge-base failed"

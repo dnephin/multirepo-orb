@@ -82,6 +82,7 @@ jobs:
             - run: git push origin HEAD:master
             - multirepo-prod/run-job-for-paths:
                 paths: orb.yaml
+                #run_on_upstream: false
             - run: ./make publish_patch
 
       - unless:
@@ -128,3 +129,15 @@ jobs:
           paths: orb.yaml
           upstream_branch: $CIRCLE_SHA1
       - run: test/bin/expect-no-halt
+
+  test_orb_on_upstream_no_run:
+    executor: bash
+    environment:
+      TESTDIR: /tmp/testdir
+    steps:
+      - setup
+      - multirepo/run-job-for-paths:
+          paths: orb.yaml
+          upstream_branch: $CIRCLE_SHA1
+          run_on_upstream: false
+      - run: test/bin/expect-halted
