@@ -25,6 +25,7 @@ workflows:
           increment-patch: true
           <<: *filter_branch_testing
           requires:
+            - validate
             - test_orb_file_changed
             - test_orb_no_file_changed
             - test_orb_on_upstream
